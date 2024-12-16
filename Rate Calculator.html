@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shipping Rate Calculator</title>
+    <style>
+        /* General Body Styling */
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d); /* Gradient background for a dynamic, tech-inspired look */
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-size: cover;
+            background-position: center;
+        }
+
+        /* Main Container */
+        .container {
+            background-color: rgba(0, 0, 0, 0.8); /* Darker transparent background for better text contrast */
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 800px;
+            width: 100%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Heading Styling */
+        h2 {
+            color: #ffdd57; /* Lighter yellow for the heading for better contrast */
+            font-size: 28px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+        }
+
+        /* Form Controls */
+        label {
+            font-size: 16px;
+            color: #f0f0f0; /* Light gray for form labels for readability */
+            margin-top: 10px;
+        }
+
+        input, select, button {
+            padding: 12px;
+            margin: 12px 0;
+            width: 100%;
+            font-size: 16px;
+            border: 2px solid #ffdd57; /* Golden border to match the heading */
+            border-radius: 5px;
+            background-color: #333;
+            color: #f0f0f0; /* Light gray text color for input fields */
+            outline: none;
+        }
+
+        /* Button Hover Effect */
+        button:hover {
+            background-color: #ffb84d; /* Lighter golden color on button hover */
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        /* Modal Styling */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+        }
+
+        .modal-content {
+            background-color: #333;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 1000px;
+            color: #fff;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: #ffdd57; /* Heading color inside modal */
+        }
+
+        .close {
+            color: #fff;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0 10px;
+        }
+
+        .modal-body {
+            margin-top: 20px;
+        }
+
+        .modal-footer {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        /* Table Styling */
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #333;
+            color: #ffdd57; /* Golden text color for table headers */
+        }
+
+        footer {
+            margin-top: 30px;
+            font-size: 14px;
+            color: #f0f0f0;
+            text-align: center;
+        }
+
+        footer a {
+            color: #ffdd57; /* Golden color for links */
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Shipping Rate Calculator</h2>
+
+    <!-- Form Inputs for Order Type, Pincode, Dimensions, and Weight -->
+    <label for="orderType">Order Type:</label>
+    <select id="orderType" onchange="toggleCODAmountField()">
+        <option value="prepaid">Prepaid</option>
+        <option value="cod">COD</option>
+    </select>
+
+    <label for="pickupPincode">Pickup Pincode:</label>
+    <input type="text" id="pickupPincode" placeholder="Enter Pickup Pincode (e.g., 100001)" />
+
+    <label for="deliveryPincode">Delivery Pincode:</label>
+    <input type="text" id="deliveryPincode" placeholder="Enter Delivery Pincode (e.g., 110001)" />
+
+    <label for="weight">Weight (kg):</label>
+    <input type="number" id="weight" placeholder="Enter Weight in kg" />
+
+    <label for="length">Length (cm):</label>
+    <input type="number" id="length" placeholder="Enter Length in cm" />
+
+    <label for="width">Width (cm):</label>
+    <input type="number" id="width" placeholder="Enter Width in cm" />
+
+    <label for="height">Height (cm):</label>
+    <input type="number" id="height" placeholder="Enter Height in cm" />
+
+    <label for="includeRTO">Include RTO Charges:</label>
+    <input type="checkbox" id="includeRTO" />
+
+    <div id="codAmountField" style="display: none;">
+        <label for="codAmount">COD Collectable Amount (₹):</label>
+        <input type="number" id="codAmount" placeholder="Enter COD Collectable Amount" />
+    </div>
+
+    <button onclick="calculateRate()">Get Shipping Rates</button>
+</div>
+
+<!-- Modal for Shipping Rates -->
+<div id="ratesModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Shipping Rate Details</h3>
+            <span class="close" onclick="closeModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <!-- Table will be populated dynamically here -->
+            <table id="rateTable">
+                <thead>
+                    <tr>
+                        <th>Courier</th>
+                        <th>Product Name</th>
+                        <th>Mode</th>
+                        <th>Zone</th>
+                        <th>Volumetric Weight</th>
+                        <th>Billed Weight</th>
+                        <th>Shipping Cost</th>
+                        <th>COD Charges</th>
+                        <th>RTO Charges</th>
+                        <th>GST (18%)</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody id="rateTableBody"></tbody>
+            </table>
+        </div>
+        <div class="modal-footer">
+            <button onclick="closeModal()">Close</button>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    let pincodeMappings = {};
+    let rateData = [];
+
+    // Load pincode data
+    fetch('pincode.json')
+        .then(response => response.json())
+        .then(data => {
+            pincodeMappings = data;
+        })
+        .catch(error => {
+            console.error("Error loading pincode data:", error);
+            alert("Error loading PIN code data.");
+        });
+
+    // Load rate card data
+    fetch('ratecard.json')
+        .then(response => response.json())
+        .then(data => {
+            rateData = data;
+        })
+        .catch(error => {
+            console.error("Error loading rate card:", error);
+            alert("Error loading rate card data.");
+        });
+
+    // Toggle visibility of COD field
+    function toggleCODAmountField() {
+        const orderType = document.getElementById("orderType").value;
+        const codAmountField = document.getElementById("codAmountField");
+        if (orderType === "cod") {
+            codAmountField.style.display = "block";
+        } else {
+            codAmountField.style.display = "none";
+        }
+    }
+
+    // Show Modal
+    function showModal() {
+        document.getElementById("ratesModal").style.display = "block";
+    }
+
+    // Close Modal
+    function closeModal() {
+        document.getElementById("ratesModal").style.display = "none";
+    }
+
+    // Calculate and display shipping rates
+    function calculateRate() {
+        const pickupPincode = document.getElementById("pickupPincode").value;
+        const deliveryPincode = document.getElementById("deliveryPincode").value;
+        const weight = parseFloat(document.getElementById("weight").value);
+        const length = parseFloat(document.getElementById("length").value);
+        const width = parseFloat(document.getElementById("width").value);
+        const height = parseFloat(document.getElementById("height").value);
+        const orderType = document.getElementById("orderType").value;
+        const includeRTO = document.getElementById("includeRTO").checked;
+        const codAmount = orderType === "cod" ? parseFloat(document.getElementById("codAmount").value) : 0;
+
+        const resultElement = document.getElementById("result");
+
+        // Input validation
+        if (!pickupPincode || !deliveryPincode || !/^\d{6}$/.test(pickupPincode) || !/^\d{6}$/.test(deliveryPincode)) {
+            resultElement.textContent = "Invalid PIN code format. Please enter a 6-digit PIN code.";
+            resultElement.classList.add('error');
+            return;
+        }
+
+        if (isNaN(weight) || weight <= 0 || isNaN(length) || length <= 0 || isNaN(width) || width <= 0 || isNaN(height) || height <= 0) {
+            resultElement.textContent = "Please enter valid weight and dimensions.";
+            resultElement.classList.add('error');
+            return;
+        }
+
+        // Get pickup and delivery pincode data
+        const pickupData = pincodeMappings[pickupPincode];
+        const deliveryData = pincodeMappings[deliveryPincode];
+
+        if (!pickupData || !deliveryData) {
+            resultElement.textContent = "Invalid PIN code(s). Please enter valid PIN codes.";
+            resultElement.classList.add('error');
+            return;
+        }
+
+        // Determine zone
+        let zone = '';
+        if (pickupData.city === deliveryData.city) {
+            zone = "Within City";
+        } else if (pickupData.state === deliveryData.state) {
+            zone = "Within State";
+        } else {
+            zone = "Rest of India";
+        }
+
+        // Filter couriers based on zone
+        const selectedCourier = rateData.filter(courier => courier.zone === zone);
+
+        if (!selectedCourier.length) {
+            resultElement.textContent = "No matching courier found for the selected zone.";
+            resultElement.classList.add('error');
+            return;
+        }
+
+        // Calculate volumetric weight
+        const volumetricWeight = (length * width * height) / 5000;
+        const billedWeight = Math.max(weight, volumetricWeight);
+
+        // Prepare results
+        const tableBody = document.getElementById("rateTableBody");
+        tableBody.innerHTML = '';
+
+        selectedCourier.forEach(courier => {
+            const shippingCost = courier.baseRate + (billedWeight * courier.addlRate);
+            const codCharges = orderType === "cod" ? (codAmount * courier.codPercent) / 100 : 0;
+            const rtoCharges = includeRTO ? courier.rtoCharges : 0;
+            const gst = 0.18 * (shippingCost + codCharges + rtoCharges);
+            const total = shippingCost + codCharges + rtoCharges + gst;
+
+            const row = tableBody.insertRow();
+            row.insertCell(0).textContent = courier.courier;
+            row.insertCell(1).textContent = courier.productName;
+            row.insertCell(2).textContent = courier.mode;
+            row.insertCell(3).textContent = zone;
+            row.insertCell(4).textContent = `${volumetricWeight.toFixed(2)} kg`;
+            row.insertCell(5).textContent = `${billedWeight.toFixed(2)} kg`;
+            row.insertCell(6).textContent = `₹${shippingCost.toFixed(2)}`;
+            row.insertCell(7).textContent = `₹${codCharges.toFixed(2)}`;
+            row.insertCell(8).textContent = `₹${rtoCharges.toFixed(2)}`;
+            row.insertCell(9).textContent = `₹${gst.toFixed(2)}`;
+            row.insertCell(10).textContent = `₹${total.toFixed(2)}`;
+        });
+
+        // Show the modal with results
+        showModal();
+    }
+</script>
+
+</body>
+</html>

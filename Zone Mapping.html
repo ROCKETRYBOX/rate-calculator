@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PIN Code Zone Classification and CSV Download</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #0f0f0f, #1f1f1f); /* Dark tech-inspired gradient */
+            color: #fff;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 50px auto;
+            background-color: rgba(0, 0, 0, 0.7); /* Dark transparent background for better text readability */
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+
+        h2 {
+            font-size: 28px;
+            color: #00ffcc; /* Tech neon color */
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        input, button {
+            padding: 12px;
+            margin: 15px 0;
+            width: 100%;
+            font-size: 16px;
+            border: 2px solid #00ffcc; /* Tech neon border */
+            border-radius: 5px;
+            background-color: #1e1e1e; /* Dark background for input and button */
+            color: #fff;
+        }
+
+        button {
+            background-color: #00ffcc;
+            color: #333;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #00cc99; /* Slightly darker neon green on hover */
+            cursor: pointer;
+        }
+
+        .result {
+            font-weight: bold;
+            font-size: 18px;
+            margin-top: 15px;
+        }
+
+        .error {
+            color: #ff3d3d; /* Bright red for errors */
+        }
+
+        .success {
+            color: #39e639; /* Bright green for success */
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 14px;
+            color: #fff;
+        }
+
+        footer a {
+            color: #00ffcc;
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>PIN Code Wise Zone Mapping</h2>
+        
+        <label for="pickupPincode">Pickup Pincode:</label>
+        <input type="text" id="pickupPincode" placeholder="Enter Pickup Pincode (e.g., 100001)" />
+        
+        <button onclick="getZone()">Get Zone</button>
+        <button onclick="generateAndDownloadCSV()">Download Zone Mapping CSV</button>
+        
+        <div id="result" class="result"></div>
+    </div>
+
+    <footer>
+        <p>Website created by <strong>Raushan Kumar</strong>.
+    </footer>
+
+    <script>
+        let pincodeMappings = {};
+
+        // Load the pincode mappings from the pincode.json file
+        fetch('pincode.json')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Failed to fetch pincode data.");
+                }
+                return response.json();
+            })
+            .then(data => {
+                pincodeMappings = data;
+            })
+            .catch(error => {
+                console.error("Error loading JSON:", error);
+                document.getElementById('result').textContent = "Error loading PIN code data.";
+                document.getElementById('result').classList.add('error');
+            });
+
+        // Function to get the zone based on pickup PIN code
+        function getZone() {
+            const pickupPincode = document.getElementById("pickupPincode").value.trim();
+            const resultElement = document.getElementById("result");
+
+            // Validate PIN code format (must be 6 digits)
+            if (!/^\d{6}$/.test(pickupPincode)) {
+                resultElement.textContent = "Invalid PIN code format. Please enter a 6-digit PIN code.";
+                resultElement.classList.add('error');
+                resultElement.classList.remove('success');
+                return;
+            }
+
+            // Check if PIN code exists in the pincodeMappings
+            const pickup = pincodeMappings[pickupPincode];
+
+            if (!pickup) {
+                resultElement.textContent = "Invalid Pickup PIN code. Please enter a valid PIN code.";
+                resultElement.classList.add('error');
+                resultElement.classList.remove('success');
+                return;
+            }
+
+            // After validation, inform the user that the data is ready for download
+            resultElement.textContent = "Data is ready to download!";
+            resultElement.classList.add('success');
+            resultElement.classList.remove('error');
+        }
+
+        // Function to generate and download the CSV file for all PIN codes based on a single pickup PIN code
+        function generateAndDownloadCSV() {
+            const pickupPincode = document.getElementById("pickupPincode").value.trim();
+
+            // Validate that pickup PIN code is entered and valid
+            if (!/^\d{6}$/.test(pickupPincode)) {
+                alert("Please enter a valid 6-digit Pickup PIN code.");
+                return;
+            }
+
+            // Check if Pickup Pincode exists in the data
+            const pickup = pincodeMappings[pickupPincode];
+            if (!pickup) {
+                alert("Invalid Pickup Pincode. Please enter a valid PIN code.");
+                return;
+            }
+
+            // Prepare CSV content with the required columns
+            let csvContent = "Pickup Pincode,Delivery Pincode,Delivery City,Delivery State,Zone\n"; // Column headers
+
+            // Loop through all delivery PIN codes in pincodeMappings
+            for (const deliveryPincode in pincodeMappings) {
+                const delivery = pincodeMappings[deliveryPincode];
+                if (!delivery) {
+                    continue; // Skip invalid delivery PIN codes
+                }
+
+                let zone = '';
+
+                // Zone Classification Logic based on pickup and delivery
+                if (pickup.city === delivery.city) {
+                    zone = "Within City";
+                } else if (pickup.state === delivery.state) {
+                    zone = "Within State";
+                } else if (
+                    (pickup.city === "MUMBAI" || pickup.city === "DELHI" || pickup.city === "HYDERABAD" || pickup.city === "KOLKATA") &&
+                    (delivery.city === "MUMBAI" || delivery.city === "DELHI" || delivery.city === "HYDERABAD" || delivery.city === "KOLKATA")
+                ) {
+                    zone = "Metro to Metro";
+                } else if (pickup.state !== delivery.state) {
+                    zone = "Rest of India";
+                } else if (
+                    pickup.state === "JAMMU & KASHMIR" || delivery.state === "JAMMU & KASHMIR" ||
+                    pickup.state === "ASSAM" || delivery.state === "ASSAM"
+                ) {
+                    zone = "Special Zones";
+                } else {
+                    zone = "Rest of India";
+                }
+
+                // Add row for each combination of Pickup and Delivery PIN code
+                csvContent += `${pickupPincode},${deliveryPincode},${delivery.city},${delivery.state},${zone}\n`;
+            }
+
+            // Create a Blob and trigger download with Pickup Pincode in the filename
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `zone_mappings_${pickupPincode}.csv`;  // Name of the downloaded file with Pickup Pincode
+            link.click();  // Trigger the download
+        }
+    </script>
+
+</body>
+</html>
